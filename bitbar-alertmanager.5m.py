@@ -53,7 +53,13 @@ def main():
             if entry['blocks']:
                 for block in entry['blocks']:
                     for alert in block.get('alerts', []):
+                        # Old silence check
                         if 'silenced' in alert:
+                            logger.debug('Skipping silenced alert %s', alert['labels'])
+                            silenced[env] += 1
+                            continue
+                        # Newer silence check
+                        if alert.get('status', {}).get('silencedBy'):
                             logger.debug('Skipping silenced alert %s', alert['labels'])
                             silenced[env] += 1
                             continue
