@@ -37,7 +37,7 @@ def main():
     for env, url in environments:
         try:
             result = requests.get(
-                '{}/api/v1/alerts/groups'.format(url),
+                '{}/api/v1/alerts'.format(url),
                 headers={'user-agent': USER_AGENT}
             )
             result.raise_for_status()
@@ -49,32 +49,28 @@ def main():
             alerts[env] = []
             continue
 
-        for entry in data:
-            if entry['blocks']:
-                for block in entry['blocks']:
-                    for alert in block.get('alerts', []):
-                        # Old silence check
-                        if 'silenced' in alert:
-                            logger.debug('Skipping silenced alert %s', alert['labels'])
-                            silenced[env] += 1
-                            continue
-                        # Newer silence check
-                        if alert.get('status', {}).get('silencedBy'):
-                            logger.debug('Skipping silenced alert %s', alert['labels'])
-                            silenced[env] += 1
-                            continue
-                        if 'heartbeat' == alert['labels'].get('severity'):
-                            logger.debug('Skipping heartbeat alert %s', alert['labels'])
-                            ignored[env] += 1
-                            continue
-                        _buffer = alert['labels']['alertname']
-                        _buffer += label(alert, 'job')
-                        _buffer += label(alert, 'service')
-                        _buffer += label(alert, 'project')
-                        _buffer += ' | '
-                        if 'generatorURL' in alert:
-                            _buffer += 'href=' + alert['generatorURL']
-                        alerts[env].append(_buffer)
+        for alert in data:
+            # Newer silence check
+            if alert.get('status', {}).get('silencedBy'):
+                logger.debug('Skipping silenced alert %s', alert['labels'])
+                silenced[env] += 1
+                continue
+            if alert.get('status', {}).get('inhibitedBy'):
+                logger.debug('Skipping silenced alert %s', alert['labels'])
+                silenced[env] += 1
+                continue
+            if 'heartbeat' == alert['labels'].get('severity'):
+                logger.debug('Skipping heartbeat alert %s', alert['labels'])
+                ignored[env] += 1
+                continue
+            _buffer = alert['labels']['alertname']
+            _buffer += label(alert, 'job')
+            _buffer += label(alert, 'service')
+            _buffer += label(alert, 'project')
+            _buffer += ' | '
+            if 'generatorURL' in alert:
+                _buffer += 'href=' + alert['generatorURL']
+            alerts[env].append(_buffer)
 
     print(':rotating_light: {}'.format(
         [len(alerts[env[0]]) for env in environments]
