@@ -63,14 +63,15 @@ def main():
                 logger.debug('Skipping heartbeat alert %s', alert['labels'])
                 ignored[env] += 1
                 continue
-            _buffer = alert['labels']['alertname']
+
+            _buffer = alert['labels'].get('alertname', '')
             _buffer += label(alert, 'job')
             _buffer += label(alert, 'service')
             _buffer += label(alert, 'project')
             _buffer += ' | '
             if 'generatorURL' in alert:
                 _buffer += 'href=' + alert['generatorURL']
-            alerts[env].append(_buffer)
+            alerts[env].append(_buffer.strip())
 
     print(':rotating_light: {}'.format(
         [len(alerts[env[0]]) for env in environments]
